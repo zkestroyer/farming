@@ -4,11 +4,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:farming/app_theme.dart';
 import 'package:farming/language_selection_screen.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   // Ensure Firebase is initialized before app runs
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Optional: Enable Firestore persistence
   FirebaseFirestore.instance.settings = const Settings(
