@@ -43,6 +43,9 @@ dependencies:
   speech_to_text: ^7.3.0
   flutter_tts: ^4.2.3
   http: ^1.5.0
+  cloud_functions: 6.0.3  # For calling my backend functions
+  geolocator: ^12.0.0     # To get user's lat/lon for the weather API
+  image_picker: ^1.1.2    # To let users pick/take photos of plants
 
 dev_dependencies:
   flutter_test:
