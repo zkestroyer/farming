@@ -1,84 +1,285 @@
 // lib/services/firebase_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart'; // <-- IMPORT THIS
-import 'package:flutter/foundation.dart'; // <-- IMPORT THIS
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 
 class FirebaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseFunctions _functions = FirebaseFunctions.instance; // <-- ADD THIS
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
-  // --- ADD THIS BLOCK to use local emulators ---
   FirebaseService() {
+    // Use local emulators in debug mode
     if (kDebugMode) {
-      _functions.useFunctionsEmulator('127.0.0.1', 5001);
+      try {
+        _functions.useFunctionsEmulator('localhost', 5001);
+        _db.useFirestoreEmulator('localhost', 8080);
+      } catch (e) {
+        debugPrint('Emulator connection error: $e');
+      }
     }
   }
-  // --- END BLOCK ---
 
-
-  // Add or update user profile
+  // ============= USER MANAGEMENT =============
+  
+  /// Add or update user profile
   Future<void> setUserProfile(String uid, Map<String, dynamic> data) async {
-    await _db.collection('users').doc(uid).set(data, SetOptions(merge: true));
+    try {
+      await _db.collection('users').doc(uid).set(
+        {
+          ...data,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      debugPrint('Error setting user profile: $e');
+      rethrow;
+    }
   }
 
-  // Write an AI query. The cloud function will add the response.
+  /// Get user profile
+  Future<DocumentSnapshot> getUserProfile(String uid) async {
+    try {
+      return await _db.collection('users').doc(uid).get();
+    } catch (e) {
+      debugPrint('Error getting user profile: $e');
+      rethrow;
+    }
+  }
+
+  /// Stream user profile
+  Stream<DocumentSnapshot> getUserProfileStream(String uid) {
+    return _db.collection('users').doc(uid).snapshots();
+  }
+
+  // ============= AI QUERIES =============
+
+  /// Write an AI query. The cloud function will add the response.
   Future<DocumentReference> addQuery(String uid, String question) async {
-    return await _db.collection('queries').add({
-      'userID': uid,
-      'question': question,
-      'aiResponse': null,
-      'status': 'processing',
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+    try {
+      return await _db.collection('queries').add({
+        'userID': uid,
+        'question': question,
+        'aiResponse': null,
+        'status': 'processing',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error adding query: $e');
+      rethrow;
+    }
   }
 
-  // --- MODIFIED: Reads from 'market_rates' (which our function now writes to) ---
+  /// Get a specific query by ID
+  Stream<DocumentSnapshot> getQueryStream(String queryId) {
+    return _db.collection('queries').doc(queryId).snapshots();
+  }
+
+  /// Get user's query history
+  Stream<QuerySnapshot> getUserQueriesStream(String uid, {int limit = 20}) {
+    return _db
+        .collection('queries')
+        .where('userID', isEqualTo: uid)
+        .orderBy('timestamp', descending: true)
+        .limit(limit)
+        .snapshots();
+  }
+
+  // ============= MARKET RATES =============
+
+  /// Stream market rates for a specific region
   Stream<List<Map<String, dynamic>>> marketRatesStream(String region) {
     return _db
         .collection('market_rates')
         .where('region', isEqualTo: region)
-        // .orderBy("lastUpdated", descending: true) // Good to add
         .snapshots()
-        .map((s) => s.docs.map((d) => d.data()).toList());
+        .map((snapshot) => snapshot.docs
+            .map((doc) => {'id': doc.id, ...doc.data()})
+            .toList());
   }
 
-  // Add resource
-  Future<void> addResource(Map<String, dynamic> resource) async {
-    await _db.collection('resources').add(resource);
+  /// Get all market rates (for all regions)
+  Stream<QuerySnapshot> getAllMarketRatesStream() {
+    return _db
+        .collection('market_rates')
+        .orderBy('lastUpdated', descending: true)
+        .snapshots();
   }
 
-  // --- NEW FUNCTION 1: Call 'postCropForSale' ---
-  Future<HttpsCallableResult> postCropForSale({
+  /// Call cloud function to update market rates (admin only)
+  Future<Map<String, dynamic>> updateMarketRates(
+      List<Map<String, dynamic>> rates) async {
+    try {
+      final callable = _functions.httpsCallable('updateMarketRates');
+      final result = await callable.call(<String, dynamic>{
+        'rates': rates,
+      });
+      return result.data as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('Error updating market rates: $e');
+      rethrow;
+    }
+  }
+
+  // ============= CROPS FOR SALE =============
+
+  /// Post a crop for sale
+  Future<Map<String, dynamic>> postCropForSale({
     required String cropName,
     required String urduName,
     required double quantity,
     required double price,
     required String unit,
+    String? description,
+    String? location,
   }) async {
-    final callable = _functions.httpsCallable('postCropForSale');
-    return await callable.call(<String, dynamic>{
-      'cropName': cropName,
-      'urduName': urduName,
-      'quantity': quantity,
-      'price': price,
-      'unit': unit,
-    });
+    try {
+      final callable = _functions.httpsCallable('postCropForSale');
+      final result = await callable.call(<String, dynamic>{
+        'cropName': cropName,
+        'urduName': urduName,
+        'quantity': quantity,
+        'price': price,
+        'unit': unit,
+        'description': description,
+        'location': location,
+      });
+      return result.data as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('Error posting crop for sale: $e');
+      rethrow;
+    }
   }
 
-  // --- NEW FUNCTION 2: Call 'updateMarketRates' (for admin) ---
-  Future<HttpsCallableResult> updateMarketRates(List<Map<String, dynamic>> rates) async {
-    final callable = _functions.httpsCallable('updateMarketRates');
-    return await callable.call(<String, dynamic>{
-      'rates': rates,
-    });
-  }
-
-  // --- NEW: A simple stream to read the crops for sale ---
-  Stream<QuerySnapshot> getCropsForSaleStream() {
+  /// Get all available crops for sale
+  Stream<QuerySnapshot> getCropsForSaleStream({int limit = 50}) {
     return _db
-        .collection("crops_for_sale")
-        .where("status", isEqualTo: "available")
-        .orderBy("postedAt", descending: true)
+        .collection('crops_for_sale')
+        .where('status', isEqualTo: 'available')
+        .orderBy('postedAt', descending: true)
+        .limit(limit)
         .snapshots();
+  }
+
+  /// Get crops for sale by specific seller
+  Stream<QuerySnapshot> getSellerCropsStream(String sellerId) {
+    return _db
+        .collection('crops_for_sale')
+        .where('sellerId', isEqualTo: sellerId)
+        .orderBy('postedAt', descending: true)
+        .snapshots();
+  }
+
+  /// Search crops by name
+  Stream<QuerySnapshot> searchCrops(String searchTerm) {
+    final lowerSearch = searchTerm.toLowerCase();
+    return _db
+        .collection('crops_for_sale')
+        .where('status', isEqualTo: 'available')
+        .orderBy('postedAt', descending: true)
+        .snapshots();
+    // Note: Firestore doesn't support case-insensitive search
+    // You'll need to filter results on the client side
+  }
+
+  /// Mark a crop as sold
+  Future<Map<String, dynamic>> markCropAsSold(String cropId) async {
+    try {
+      final callable = _functions.httpsCallable('markCropAsSold');
+      final result = await callable.call(<String, dynamic>{
+        'cropId': cropId,
+      });
+      return result.data as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('Error marking crop as sold: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete a crop listing
+  Future<Map<String, dynamic>> deleteCropListing(String cropId) async {
+    try {
+      final callable = _functions.httpsCallable('deleteCropListing');
+      final result = await callable.call(<String, dynamic>{
+        'cropId': cropId,
+      });
+      return result.data as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('Error deleting crop listing: $e');
+      rethrow;
+    }
+  }
+
+  /// Increment views for a crop listing
+  Future<void> incrementCropViews(String cropId) async {
+    try {
+      await _db.collection('crops_for_sale').doc(cropId).update({
+        'views': FieldValue.increment(1),
+      });
+    } catch (e) {
+      debugPrint('Error incrementing crop views: $e');
+      // Don't rethrow - views are not critical
+    }
+  }
+
+  // ============= RESOURCES =============
+
+  /// Add a farming resource
+  Future<void> addResource(Map<String, dynamic> resource) async {
+    try {
+      await _db.collection('resources').add({
+        ...resource,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error adding resource: $e');
+      rethrow;
+    }
+  }
+
+  /// Get resources stream
+  Stream<QuerySnapshot> getResourcesStream({String? category}) {
+    Query query = _db.collection('resources');
+    
+    if (category != null && category.isNotEmpty) {
+      query = query.where('category', isEqualTo: category);
+    }
+    
+    return query.orderBy('createdAt', descending: true).snapshots();
+  }
+
+  // ============= NOTIFICATIONS =============
+
+  /// Get user notifications
+  Stream<QuerySnapshot> getUserNotificationsStream(String uid, {int limit = 20}) {
+    return _db
+        .collection('notifications')
+        .where('userId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots();
+  }
+
+  /// Mark notification as read
+  Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      await _db.collection('notifications').doc(notificationId).update({
+        'read': true,
+        'readAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Error marking notification as read: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete notification
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      await _db.collection('notifications').doc(notificationId).delete();
+    } catch (e) {
+      debugPrint('Error deleting notification: $e');
+      rethrow;
+    }
   }
 }

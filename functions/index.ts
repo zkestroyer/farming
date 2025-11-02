@@ -35,7 +35,7 @@ export const sendDailyWeatherAlerts = functions.pubsub
         
         try {
           // Fetch weather (you'll need to implement this based on your weather API)
-          const weatherUrl = `http://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${WEATHER_API_KEY}&units=metric`;
+          const weatherUrl = `http://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${fee1d96b1414c7187e5237cc5639e298}&units=metric`;
           const weatherRes = await axios.get(weatherUrl);
           
           const temp = weatherRes.data.main.temp;
