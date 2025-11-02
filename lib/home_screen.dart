@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:farming/app_theme.dart'; // This file should contain BilingualText
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:farming/auth_screen.dart';
-
+import 'learning_screen.dart';
+import 'marketplace_screen.dart';
+import 'smart_farming_screen.dart';
 // --- 1. IMPORT YOUR SERVICE AND MODELS ---
 import 'package:farming/services/weather_service.dart';
 import 'package:farming/models/weather_models.dart';
@@ -94,7 +96,14 @@ class HomeScreen extends StatelessWidget {
                       label: "Smart Farm",
                       urduLabel: "سمارٹ فارم",
                       color: AppColors.chocolateBrown,
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SmartFarmingScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildActionCard(
                       context,
@@ -110,7 +119,14 @@ class HomeScreen extends StatelessWidget {
                       label: "Learning",
                       urduLabel: "سیکھیں",
                       color: AppColors.yellowGold,
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LearningScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildActionCard(
                       context,
@@ -118,7 +134,9 @@ class HomeScreen extends StatelessWidget {
                       label: "My Report",
                       urduLabel: "میری رپورٹ",
                       color: Colors.green.shade700,
-                      onTap: () {},
+                      onTap: () {
+                        // Navigate to reports screen
+                      },
                     ),
                   ],
                 ),
