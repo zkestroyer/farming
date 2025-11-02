@@ -1,6 +1,6 @@
-// lib/screens/voice_assistant_screen.dart
 import 'package:flutter/material.dart';
 import 'package:farming/app_theme.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class VoiceAssistantScreen extends StatefulWidget {
   const VoiceAssistantScreen({super.key});
@@ -10,12 +10,38 @@ class VoiceAssistantScreen extends StatefulWidget {
 }
 
 class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
-  // In a real app, this would be tied to your voice recognition state
-  bool _isListening = true;
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  String _text = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+    _initSpeech();
+  }
+
+  void _initSpeech() async {
+    await _speech.initialize();
+  }
+
+  void _listen() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize();
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult: (val) => setState(() => _text = val.recognizedWords),
+        );
+      }
+    } else {
+      _speech.stop();
+      setState(() => _isListening = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // This creates the "white overlay" effect on the bottom half
     return Container(
       height: MediaQuery.of(context).size.height * 0.6,
       decoration: const BoxDecoration(
@@ -32,17 +58,18 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
             _isListening ? "Listening..." : "Tap to speak",
             style: Theme.of(context).textTheme.headlineSmall,
           ),
+          const SizedBox(height: 8),
           Text(
-            _isListening ? "سن رہا ہے..." : "بولنے کے لیے ٹیپ کریں",
+            _text.isEmpty
+                ? (_isListening ? "سن رہا ہے..." : "بولنے کے لیے ٹیپ کریں")
+                : _text,
             style: Theme.of(context).textTheme.titleMedium,
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 40),
 
-          // Listening Animation
-          // This is a simple placeholder; you'd replace this with
-          // a proper animation (e.g., Lottie)
           GestureDetector(
-            onTap: () => setState(() => _isListening = !_isListening),
+            onTap: _listen,
             child: Container(
               width: 120,
               height: 120,
@@ -69,7 +96,6 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
           ),
           const SizedBox(height: 40),
 
-          // Suggestions
           Text("Try saying:", style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
           Text(

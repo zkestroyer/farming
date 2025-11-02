@@ -1,9 +1,16 @@
-// lib/screens/learning_screen.dart
 import 'package:flutter/material.dart';
 import 'package:farming/app_theme.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LearningScreen extends StatelessWidget {
   const LearningScreen({super.key});
+
+  void _launchLesson(String url) async {
+    Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +30,7 @@ class LearningScreen extends StatelessWidget {
             urduTitle: "پانی کی بچت",
             icon: Icons.water_damage_rounded,
             color: Colors.blue.shade700,
+            lessonUrl: "https://www.youtube.com/watch?v=U0f0u1A0aQ4",
           ),
           _buildLearningCard(
             context,
@@ -30,6 +38,7 @@ class LearningScreen extends StatelessWidget {
             urduTitle: "جدید کاشتکاری",
             icon: Icons.agriculture_rounded,
             color: Colors.green.shade800,
+            lessonUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
           ),
           _buildLearningCard(
             context,
@@ -37,6 +46,7 @@ class LearningScreen extends StatelessWidget {
             urduTitle: "پائیدار طریقے",
             icon: Icons.eco_rounded,
             color: AppColors.chocolateBrown,
+            lessonUrl: "https://www.youtube.com/watch?v=J---aiyznGQ",
           ),
           _buildLearningCard(
             context,
@@ -44,6 +54,7 @@ class LearningScreen extends StatelessWidget {
             urduTitle: "کیڑوں پر قابو پانا",
             icon: Icons.bug_report_rounded,
             color: AppColors.primaryRed,
+            lessonUrl: "https://www.youtube.com/watch?v=oHg5SJYRHA0",
           ),
         ],
       ),
@@ -56,17 +67,15 @@ class LearningScreen extends StatelessWidget {
     required String urduTitle,
     required IconData icon,
     required Color color,
+    required String lessonUrl,
   }) {
     return Card(
       child: InkWell(
-        onTap: () {
-          /* Open video/lesson playlist */
-        },
+        onTap: () => _launchLesson(lessonUrl),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              // Friendly Illustration/Icon
               Container(
                 width: 60,
                 height: 60,
@@ -77,7 +86,6 @@ class LearningScreen extends StatelessWidget {
                 child: Icon(icon, color: color, size: 30),
               ),
               const SizedBox(width: 16),
-              // Title
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,16 +105,13 @@ class LearningScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              // Audio Play Button
               IconButton(
                 icon: Icon(
                   Icons.play_circle_fill_rounded,
                   color: AppColors.primaryRed,
                   size: 40,
                 ),
-                onPressed: () {
-                  /* Play audio summary */
-                },
+                onPressed: () => _launchLesson(lessonUrl),
               ),
             ],
           ),
