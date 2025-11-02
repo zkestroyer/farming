@@ -92,10 +92,21 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  _scrollController.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
+                  // Offline demo: show a simple dialog
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text("Sell Your Crop"),
+                      content: const Text(
+                        "This is a demo for the Sell My Crop feature.",
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text("Close"),
+                        ),
+                      ],
+                    ),
                   );
                 },
                 child: const BilingualText(
