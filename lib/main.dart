@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:farming/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -29,7 +30,8 @@ class VerdaApp extends StatelessWidget {
       theme: buildAppTheme(),
       debugShowCheckedModeBanner: false,
       // Starting screen (your friend's UI)
-      home: const LanguageSelectionScreen(),
+      home: const SplashScreen(),
+      routes: {'/home': (context) => const LanguageSelectionScreen()},
     );
   }
 }
