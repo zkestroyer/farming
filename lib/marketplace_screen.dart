@@ -2,10 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:farming/app_theme.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MarketplaceScreen extends StatefulWidget {
-  final String? initialTab; // NEW: allows opening a specific section
-
+  final String? initialTab; // allows opening a specific section
   const MarketplaceScreen({super.key, this.initialTab});
 
   @override
@@ -19,7 +19,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   void initState() {
     super.initState();
 
-    // Scroll to initial section after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.initialTab == "sellCrop") {
         _scrollController.animateTo(
@@ -29,7 +28,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         );
       } else if (widget.initialTab == "tutorials") {
         _scrollController.animateTo(
-          500, // adjust according to layout
+          500, // adjust based on layout
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
         );
@@ -41,6 +40,25 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _launchUrl(String url) async {
+    // Offline demo handling: if URL is empty, just show SnackBar
+    if (url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No URL available (offline demo)")),
+      );
+      return;
+    }
+
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Could not open URL")));
+    }
   }
 
   @override
@@ -64,7 +82,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        controller: _scrollController, // attach controller
+        controller: _scrollController,
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,8 +92,11 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Scroll to sell crop section or show form
-                  // Here it's already top, you could open a modal if needed
+                  _scrollController.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
                 },
                 child: const BilingualText(
                   englishText: "Sell My Crop",
@@ -140,7 +161,10 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                       ),
                       child: InkWell(
                         onTap: () {
-                          // TODO: Show crop details
+                          // TODO: Show crop details (offline demo can just SnackBar)
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("${crop['name']} selected")),
+                          );
                         },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -163,6 +187,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                 children: [
                                   Text(
                                     crop['name'] ?? "Crop",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleLarge
@@ -170,12 +196,16 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                   ),
                                   Text(
                                     crop['urdu'] ?? "",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(fontSize: 18),
+                                        ?.copyWith(fontSize: 16),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     crop['price'] ?? "",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
@@ -186,6 +216,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                   ),
                                   Text(
                                     crop['unit'] ?? "",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodyMedium,
@@ -232,15 +264,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         tutorials[index].data() as Map<String, dynamic>;
                     return Card(
                       child: ListTile(
-                        title: Text(tutorial['title'] ?? "Tutorial"),
-                        subtitle: Text(tutorial['urdu'] ?? ""),
+                        title: Text(
+                          tutorial['title'] ?? "Tutorial",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          tutorial['urdu'] ?? "",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         onTap: () {
-                          // TODO: Open video URL
                           final url = tutorial['videoUrl'] ?? "";
-                          if (url.isNotEmpty) {
-                            // Use url_launcher
-                            // launchUrl(Uri.parse(url));
-                          }
+                          _launchUrl(url); // offline-safe
                         },
                       ),
                     );

@@ -1,10 +1,8 @@
 // lib/screens/voice_assistant_screen.dart
 import 'package:flutter/material.dart';
 import 'package:farming/app_theme.dart';
-import 'package:farming/home_screen.dart';
-import 'package:farming/marketplace_screen.dart';
-import 'package:farming/learning_screen.dart';
-import 'package:farming/smart_farming_screen.dart';
+import 'home_screen.dart';
+import 'marketplace_screen.dart';
 
 class VoiceAssistantScreen extends StatefulWidget {
   const VoiceAssistantScreen({super.key});
@@ -13,140 +11,157 @@ class VoiceAssistantScreen extends StatefulWidget {
   State<VoiceAssistantScreen> createState() => _VoiceAssistantScreenState();
 }
 
-class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
+class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   bool _isListening = false;
-  final TextEditingController _demoInputController = TextEditingController();
+  String _recognizedText = "";
 
-  void _processCommand(String command) {
-    command = command.toLowerCase().trim();
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
 
-    if (command.contains("home")) {
-      Navigator.of(
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  // Offline AI simulation
+  void _processCommand(String text) {
+    text = text.toLowerCase();
+    String message;
+
+    if (text.contains("home")) {
+      message = "Navigating to Home";
+      Navigator.push(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+    } else if (text.contains("market")) {
+      message = "Navigating to Marketplace";
+      Navigator.push(
         context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => HomeScreen()));
-    } else if (command.contains("market") || command.contains("crop")) {
-      Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MarketplaceScreen()),
       );
-    } else if (command.contains("learning") || command.contains("learn")) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LearningScreen()),
-      );
-    } else if (command.contains("smart")) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const SmartFarmingScreen()),
+    } else if (text.contains("learning")) {
+      message = "Navigating to Learning";
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const MarketplaceScreen(initialTab: "tutorials"),
+        ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Command not recognized (demo).")),
-      );
+      message = "Command not recognized";
     }
+
+    setState(() => _recognizedText = message);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _startListening() {
+    setState(() => _isListening = true);
+    // Demo: simulate recognition after 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      _processCommand("market"); // Demo command
+      setState(() => _isListening = false);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.6,
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+    return Scaffold(
+      appBar: AppBar(
+        title: const BilingualText(
+          englishText: "Voice Assistant",
+          urduText: "وائس اسسٹنٹ",
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: "Commands | کمانڈز"),
+            Tab(text: "Suggestions | تجاویز"),
+          ],
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            _isListening ? "Listening..." : "Tap to speak / type demo command",
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          Text(
-            _isListening ? "سن رہا ہے..." : "ٹیپ کریں یا کمانڈ لکھیں",
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 30),
-
-          // Mic / Demo input
-          GestureDetector(
-            onTap: () {
-              setState(() => _isListening = !_isListening);
-            },
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primaryRed.withOpacity(0.1),
-              ),
-              child: Center(
-                child: Container(
-                  width: 90,
-                  height: 90,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primaryRed,
-                  ),
-                  child: const Icon(
-                    Icons.mic,
-                    color: AppColors.white,
-                    size: 50,
-                  ),
+      body: SafeArea(
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            // Commands tab
+            Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _isListening ? "Listening..." : "Tap mic to speak",
+                      style: Theme.of(context).textTheme.headlineSmall,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: _isListening ? null : _startListening,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primaryRed.withOpacity(0.2),
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 90,
+                            height: 90,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.primaryRed,
+                            ),
+                            child: const Icon(
+                              Icons.mic,
+                              color: AppColors.white,
+                              size: 50,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text(
+                        _recognizedText,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(color: AppColors.primaryRed),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
 
-          const SizedBox(height: 20),
-
-          // Demo TextField for command input
-          if (!_isListening)
+            // Suggestions tab
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: TextField(
-                controller: _demoInputController,
-                decoration: InputDecoration(
-                  labelText: "Type command (home / market / learning / smart)",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+              padding: const EdgeInsets.all(16.0),
+              child: ListView(
+                children: const [
+                  Text(
+                    "Try saying:",
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                ),
-                onSubmitted: (value) {
-                  _processCommand(value);
-                },
+                  SizedBox(height: 8),
+                  Text("\"Weather today?\" | \"آج کا موسم؟\""),
+                  Text("\"Market rates?\" | \"منڈی کے ریٹ؟\""),
+                  Text("\"Home\" | \"ہوم\""),
+                  Text("\"Learning\" | \"لرننگ\""),
+                ],
               ),
             ),
-
-          const SizedBox(height: 20),
-
-          ElevatedButton(
-            onPressed: () {
-              _processCommand(_demoInputController.text);
-            },
-            child: const Text("Run Command (Demo)"),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Suggestions
-          Text(
-            "Try saying or typing:",
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "\"Home\" | \"Market\" | \"Learning\" | \"Smart Farm\"",
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppColors.black.withOpacity(0.7),
-            ),
-          ),
-          Text(
-            "\"گھر\" | \"منڈی\" | \"سیکھیں\" | \"سمارٹ فارم\"",
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.black.withOpacity(0.7),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:farming/app_theme.dart'; // This file should contain BilingualText
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:farming/auth_screen.dart';
+import 'marketplace_screen.dart';
+import 'smart_farming_screen.dart';
+import 'learning_screen.dart';
 
 // --- 1. IMPORT YOUR SERVICE AND MODELS ---
 import 'package:farming/services/weather_service.dart';
@@ -39,14 +42,15 @@ class HomeScreen extends StatelessWidget {
             Text(
               "Welcome, Farmer!",
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.chocolateBrown,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: AppColors.chocolateBrown,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Text(
               "خوش آمدید، کسان!",
-              style:
-                  Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 16),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontSize: 16),
             ),
           ],
         ),
@@ -59,9 +63,7 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
-          color: AppColors.warmBeige,
-        ),
+        decoration: BoxDecoration(color: AppColors.warmBeige),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -95,7 +97,14 @@ class HomeScreen extends StatelessWidget {
                       label: "Smart Farm",
                       urduLabel: "سمارٹ فارم",
                       color: AppColors.chocolateBrown,
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SmartFarmingScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildActionCard(
                       context,
@@ -103,7 +112,14 @@ class HomeScreen extends StatelessWidget {
                       label: "Marketplace",
                       urduLabel: "منڈی",
                       color: AppColors.primaryRed,
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MarketplaceScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildActionCard(
                       context,
@@ -111,7 +127,14 @@ class HomeScreen extends StatelessWidget {
                       label: "Learning",
                       urduLabel: "سیکھیں",
                       color: AppColors.yellowGold,
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LearningScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildActionCard(
                       context,
@@ -119,7 +142,9 @@ class HomeScreen extends StatelessWidget {
                       label: "My Report",
                       urduLabel: "میری رپورٹ",
                       color: Colors.green.shade700,
-                      onTap: () {},
+                      onTap: () {
+                        // Placeholder for My Report action
+                      },
                     ),
                   ],
                 ),
@@ -192,9 +217,7 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         Text(
                           "Loading Weather...",
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
+                          style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(color: AppColors.black),
                         ),
                         Text(
@@ -219,8 +242,11 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20.0),
               child: Row(
                 children: [
-                  Icon(Icons.error_outline_rounded,
-                      color: AppColors.primaryRed, size: 50),
+                  Icon(
+                    Icons.error_outline_rounded,
+                    color: AppColors.primaryRed,
+                    size: 50,
+                  ),
                   const SizedBox(width: 20),
                   Expanded(
                     child: Column(
@@ -228,9 +254,7 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         Text(
                           "Weather Error",
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
+                          style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(color: AppColors.black),
                         ),
                         Text(
@@ -267,9 +291,7 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         Text(
                           "${weather.currentTemp.round()}°C - ${weather.currentCondition}",
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
+                          style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(color: AppColors.black),
                         ),
                         Text(
@@ -324,14 +346,14 @@ class HomeScreen extends StatelessWidget {
                 englishText: label,
                 urduText: urduLabel,
                 englishStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                  color: AppColors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
                 urduStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.black,
-                      fontSize: 16,
-                    ),
+                  color: AppColors.black,
+                  fontSize: 16,
+                ),
               ),
             ],
           ),
