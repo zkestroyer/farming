@@ -1,23 +1,66 @@
 // lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:farming/app_theme.dart';
+import 'package:farming/app_theme.dart'; // This file should contain BilingualText
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:farming/auth_screen.dart';
+
+// --- 1. IMPORT YOUR SERVICE AND MODELS ---
+import 'package:farming/services/weather_service.dart';
+import 'package:farming/models/weather_models.dart';
+
+// --- 2. BilingualText class REMOVED ---
+// It's already imported from 'app_theme.dart'
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  // --- ADDED const constructor ---
+  HomeScreen({super.key});
+
+  // --- 3. CREATE AN INSTANCE OF THE SERVICE ---
+  final WeatherService _weatherService = WeatherService();
+
+  // --- 4. LOGOUT FUNCTION ---
+  void _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const AuthScreen()),
+      (Route<dynamic> route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // --- 5. ADDED APPBAR WITH LOGOUT ---
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              "Welcome, Farmer!",
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppColors.chocolateBrown,
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            Text(
+              "خوش آمدید، کسان!",
+              style:
+                  Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 16),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            tooltip: "Logout",
+            icon: Icon(Icons.logout, color: AppColors.chocolateBrown),
+            onPressed: () => _logout(context),
+          ),
+        ],
+      ),
       body: Container(
-        // Background with subtle wheat field art
         decoration: BoxDecoration(
           color: AppColors.warmBeige,
-          // You would add your art here
-          // image: DecorationImage(
-          //   image: AssetImage("assets/images/wheat_field_bg.png"),
-          //   fit: BoxFit.cover,
-          //   opacity: 0.1,
-          // ),
         ),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -25,11 +68,11 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Greeting Header
-                _buildGreeting(context),
-                const SizedBox(height: 24),
+                // Greeting is now in the AppBar, so we don't need it here
+                // _buildGreeting(context), <-- REMOVED
+                // const SizedBox(height: 24), <-- REMOVED
 
-                // Weather Widget
+                // --- 6. WEATHER WIDGET (NOW USES FUTUREBUILDER) ---
                 _buildWeatherWidget(context),
                 const SizedBox(height: 24),
 
@@ -52,9 +95,7 @@ class HomeScreen extends StatelessWidget {
                       label: "Smart Farm",
                       urduLabel: "سمارٹ فارم",
                       color: AppColors.chocolateBrown,
-                      onTap: () {
-                        /* Navigate or switch tab */
-                      },
+                      onTap: () {},
                     ),
                     _buildActionCard(
                       context,
@@ -62,9 +103,7 @@ class HomeScreen extends StatelessWidget {
                       label: "Marketplace",
                       urduLabel: "منڈی",
                       color: AppColors.primaryRed,
-                      onTap: () {
-                        /* Navigate or switch tab */
-                      },
+                      onTap: () {},
                     ),
                     _buildActionCard(
                       context,
@@ -72,9 +111,7 @@ class HomeScreen extends StatelessWidget {
                       label: "Learning",
                       urduLabel: "سیکھیں",
                       color: AppColors.yellowGold,
-                      onTap: () {
-                        /* Navigate or switch tab */
-                      },
+                      onTap: () {},
                     ),
                     _buildActionCard(
                       context,
@@ -82,9 +119,7 @@ class HomeScreen extends StatelessWidget {
                       label: "My Report",
                       urduLabel: "میری رپورٹ",
                       color: Colors.green.shade700,
-                      onTap: () {
-                        /* Navigate or switch tab */
-                      },
+                      onTap: () {},
                     ),
                   ],
                 ),
@@ -96,62 +131,175 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGreeting(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Welcome, Farmer!",
-          style: Theme.of(
-            context,
-          ).textTheme.headlineMedium?.copyWith(color: AppColors.chocolateBrown),
-        ),
-        Text(
-          "خوش آمدید، کسان!",
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(color: AppColors.chocolateBrown),
-        ),
-      ],
-    );
+  // --- 7. HELPER FUNCTIONS FOR WEATHER ICONS ---
+  IconData _getWeatherIcon(String condition) {
+    switch (condition.toLowerCase()) {
+      case 'clear':
+        return Icons.wb_sunny_rounded;
+      case 'clouds':
+        return Icons.wb_cloudy_rounded;
+      case 'rain':
+      case 'drizzle':
+        return Icons.grain_rounded;
+      case 'thunderstorm':
+        return Icons.thunderstorm_rounded;
+      case 'snow':
+        return Icons.ac_unit_rounded;
+      case 'mist':
+      case 'fog':
+      case 'haze':
+        return Icons.foggy;
+      default:
+        return Icons.wb_sunny_rounded; // Default to sunny
+    }
   }
 
+  Color _getWeatherColor(String condition) {
+    switch (condition.toLowerCase()) {
+      case 'clear':
+        return AppColors.yellowGold;
+      case 'clouds':
+        return Colors.grey.shade600;
+      case 'rain':
+      case 'drizzle':
+      case 'thunderstorm':
+        return Colors.blue.shade700;
+      case 'snow':
+        return Colors.lightBlue.shade200;
+      default:
+        return AppColors.yellowGold;
+    }
+  }
+
+  // --- 8. THE WEATHER WIDGET, NOW POWERED BY A FUTUREBUILDER ---
   Widget _buildWeatherWidget(BuildContext context) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Row(
-          children: [
-            Icon(Icons.wb_sunny_rounded, color: AppColors.yellowGold, size: 50),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return FutureBuilder<Weather>(
+      future: _weatherService.getForecast("Lahore"), // API call
+      builder: (context, snapshot) {
+        // --- A. LOADING STATE ---
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
                 children: [
-                  Text(
-                    "34°C - Sunny",
-                    style: Theme.of(
-                      context,
-                    ).textTheme.headlineSmall?.copyWith(color: AppColors.black),
-                  ),
-                  Text(
-                    "Lahore, Punjab",
-                    style: Theme.of(context).textTheme.bodyLarge,
+                  CircularProgressIndicator(color: AppColors.primaryRed),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Loading Weather...",
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(color: AppColors.black),
+                        ),
+                        Text(
+                          "Please wait",
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: AppColors.chocolateBrown,
+          );
+        }
+
+        // --- B. ERROR STATE ---
+        if (snapshot.hasError) {
+          return Card(
+            elevation: 2,
+            color: AppColors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline_rounded,
+                      color: AppColors.primaryRed, size: 50),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Weather Error",
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(color: AppColors.black),
+                        ),
+                        Text(
+                          "Could not load data.",
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
+          );
+        }
+
+        // --- C. SUCCESS STATE ---
+        if (snapshot.hasData) {
+          final weather = snapshot.data!;
+          final today = weather.dailyForecasts[0];
+          final icon = _getWeatherIcon(weather.currentCondition);
+          final color = _getWeatherColor(weather.currentCondition);
+
+          return Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                children: [
+                  Icon(icon, color: color, size: 50),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${weather.currentTemp.round()}°C - ${weather.currentCondition}",
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(color: AppColors.black),
+                        ),
+                        Text(
+                          weather.locationName,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        Text(
+                          "H: ${today.maxTemp.round()}° / L: ${today.minTemp.round()}°",
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: AppColors.chocolateBrown,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Default case
+        return const Center(child: CircularProgressIndicator());
+      },
     );
   }
 
+  // --- 9. ACTION CARD BUILDER (NO CHANGES) ---
   Widget _buildActionCard(
     BuildContext context, {
     required IconData icon,
@@ -176,14 +324,14 @@ class HomeScreen extends StatelessWidget {
                 englishText: label,
                 urduText: urduLabel,
                 englishStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+                      color: AppColors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                 urduStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.black,
-                  fontSize: 16,
-                ),
+                      color: AppColors.black,
+                      fontSize: 16,
+                    ),
               ),
             ],
           ),
