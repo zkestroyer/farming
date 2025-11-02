@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:farming/app_theme.dart'; // This file should contain BilingualText
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:farming/auth_screen.dart';
-import 'marketplace_screen.dart';
-import 'smart_farming_screen.dart';
-import 'learning_screen.dart';
 
 // --- 1. IMPORT YOUR SERVICE AND MODELS ---
 import 'package:farming/services/weather_service.dart';
@@ -97,14 +94,7 @@ class HomeScreen extends StatelessWidget {
                       label: "Smart Farm",
                       urduLabel: "سمارٹ فارم",
                       color: AppColors.chocolateBrown,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const SmartFarmingScreen(),
-                          ),
-                        );
-                      },
+                      onTap: () {},
                     ),
                     _buildActionCard(
                       context,
@@ -112,14 +102,7 @@ class HomeScreen extends StatelessWidget {
                       label: "Marketplace",
                       urduLabel: "منڈی",
                       color: AppColors.primaryRed,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MarketplaceScreen(),
-                          ),
-                        );
-                      },
+                      onTap: () {},
                     ),
                     _buildActionCard(
                       context,
@@ -127,14 +110,7 @@ class HomeScreen extends StatelessWidget {
                       label: "Learning",
                       urduLabel: "سیکھیں",
                       color: AppColors.yellowGold,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const LearningScreen(),
-                          ),
-                        );
-                      },
+                      onTap: () {},
                     ),
                     _buildActionCard(
                       context,
@@ -142,9 +118,7 @@ class HomeScreen extends StatelessWidget {
                       label: "My Report",
                       urduLabel: "میری رپورٹ",
                       color: Colors.green.shade700,
-                      onTap: () {
-                        // Placeholder for My Report action
-                      },
+                      onTap: () {},
                     ),
                   ],
                 ),
