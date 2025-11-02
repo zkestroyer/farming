@@ -1,4 +1,4 @@
-// D:\Farming\farming\functions\index.ts
+// functions/index.ts
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import axios from "axios";
@@ -6,37 +6,137 @@ import axios from "axios";
 admin.initializeApp();
 
 // --- Environment Configuration ---
-const WEATHER_API_KEY = functions.config().weather.key;
-const AI_API_KEY = functions.config().ai.key;
+const WEATHER_API_KEY = functions.config().weather?.key;
+const AI_API_KEY = functions.config().ai?.key;
 
-// --- EXISTING FUNCTION 1: Daily Weather ---
+// --- FUNCTION 1: Daily Weather Alerts ---
 export const sendDailyWeatherAlerts = functions.pubsub
   .schedule("0 8 * * *")
   .timeZone("Asia/Karachi")
   .onRun(async (context) => {
-    // (Your existing weather alert code is here)
-    // ...
-    console.log("Weather alert function ran.");
-  });
+    console.log("Running daily weather alerts...");
+    
+    try {
+      // Get all users who want weather alerts
+      const usersSnapshot = await admin.firestore()
+        .collection("users")
+        .where("weatherAlertsEnabled", "==", true)
+        .get();
 
-// --- EXISTING FUNCTION 2: AI Query Response ---
-export const getAIResponseForQuery = functions.firestore
-  .document("queries/{queryId}")
-  .onCreate(async (snap, context) => {
-    // (Your existing AI response code is here)
-    // ...
-    console.log("AI response function ran.");
+      if (usersSnapshot.empty) {
+        console.log("No users with weather alerts enabled");
+        return null;
+      }
+
+      // Process each user
+      for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
+        const location = userData.location || "Lahore";
+        
+        try {
+          // Fetch weather (you'll need to implement this based on your weather API)
+          const weatherUrl = `http://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${WEATHER_API_KEY}&units=metric`;
+          const weatherRes = await axios.get(weatherUrl);
+          
+          const temp = weatherRes.data.main.temp;
+          const description = weatherRes.data.weather[0].description;
+          
+          // Create notification
+          await admin.firestore().collection("notifications").add({
+            userId: userDoc.id,
+            title: "Daily Weather Update",
+            message: `${location}: ${temp}°C, ${description}`,
+            type: "weather",
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          
+        } catch (err) {
+          console.error(`Error fetching weather for user ${userDoc.id}:`, err);
+        }
+      }
+      
+      console.log("Weather alerts sent successfully");
+    } catch (error) {
+      console.error("Error in weather alerts function:", error);
+    }
+    
     return null;
   });
 
-// --- NEW FUNCTION 1: Post Crop for Sale ---
-/**
- * A callable function that allows an authenticated user
- * to post their crop to the marketplace.
- */
+// --- FUNCTION 2: AI Query Response ---
+export const getAIResponseForQuery = functions.firestore
+  .document("queries/{queryId}")
+  .onCreate(async (snap, context) => {
+    const queryData = snap.data();
+    const question = queryData.question;
+    const queryId = context.params.queryId;
+
+    if (!question || queryData.aiResponse) {
+      console.log("No question or response already exists. Exiting.");
+      return null;
+    }
+
+    console.log(`New question from ${queryData.userID}: "${question}"`);
+
+    // Prepare the AI prompt
+    const prompt = {
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Verda, a helpful farming assistant for farmers in Pakistan. You must answer in both simple English and Urdu (using Roman Urdu/Urdu script). Provide clear, actionable advice.",
+        },
+        { role: "user", content: question },
+      ],
+    };
+
+    try {
+      // Call the AI API (OpenRouter)
+      const aiRes = await axios.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        prompt,
+        {
+          headers: {
+            "Authorization": `Bearer ${AI_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://farming-app.com", // Optional
+            "X-Title": "Verda Farming Assistant", // Optional
+          },
+        }
+      );
+
+      const aiResponse = aiRes.data.choices[0].message.content;
+
+      // Write the answer back to Firestore
+      await admin.firestore().collection("queries").doc(queryId).update({
+        aiResponse: aiResponse,
+        status: "completed",
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      console.log("Successfully answered query.");
+      return null;
+      
+    } catch (error: any) {
+      console.error("Error getting AI response:", error.response?.data || error.message);
+      
+      // Write error back to Firestore
+      await admin.firestore().collection("queries").doc(queryId).update({
+        aiResponse: "Sorry, an error occurred. Please try again. \n\nمعذرت، ایک خرابی پیش آ گئی ہے۔ براہ مہربانی دوبارہ کوشش کریں.",
+        status: "error",
+        errorAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      
+      return null;
+    }
+  });
+
+// --- FUNCTION 3: Post Crop for Sale ---
 export const postCropForSale = functions.https.onCall(
   async (data, context) => {
-    // Check if the user is authenticated
+    // Check authentication
     if (!context.auth) {
       throw new functions.https.HttpsError(
         "unauthenticated",
@@ -44,57 +144,96 @@ export const postCropForSale = functions.https.onCall(
       );
     }
 
-    // Validate the data from the app
-    const { cropName, urduName, quantity, price, unit } = data;
+    // Validate data
+    const { cropName, urduName, quantity, price, unit, description, location } = data;
+    
     if (!cropName || !quantity || !price || !unit) {
       throw new functions.https.HttpsError(
         "invalid-argument",
-        "Missing required fields."
+        "Missing required fields: cropName, quantity, price, unit"
+      );
+    }
+
+    // Validate data types
+    if (typeof quantity !== "number" || typeof price !== "number") {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Quantity and price must be numbers"
+      );
+    }
+
+    if (quantity <= 0 || price <= 0) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Quantity and price must be positive numbers"
       );
     }
 
     const uid = context.auth.uid;
 
-    // Add to the 'crops_for_sale' collection in Firestore
     try {
-      await admin.firestore().collection("crops_for_sale").add({
+      // Get user info for the listing
+      const userDoc = await admin.firestore().collection("users").doc(uid).get();
+      const userData = userDoc.data();
+
+      // Add to crops_for_sale collection
+      const cropRef = await admin.firestore().collection("crops_for_sale").add({
         sellerId: uid,
+        sellerName: userData?.name || "Anonymous",
+        sellerPhone: userData?.phone || "",
+        sellerLocation: location || userData?.location || "",
         cropName: cropName,
         urduName: urduName || "",
         quantity: quantity,
         price: price,
-        unit: unit, // e.g., "kg" or "40kg bag"
-        status: "available", // So you can manage sold items
+        unit: unit,
+        description: description || "",
+        status: "available",
         postedAt: admin.firestore.FieldValue.serverTimestamp(),
+        views: 0,
       });
 
       console.log(`New crop posted by ${uid}: ${quantity} ${unit} of ${cropName}`);
-      return { success: true, message: "Crop posted successfully!" };
-    } catch (error) {
+      
+      return { 
+        success: true, 
+        message: "Crop posted successfully!",
+        cropId: cropRef.id 
+      };
+      
+    } catch (error: any) {
       console.error("Error posting crop:", error);
       throw new functions.https.HttpsError(
         "internal",
-        "An error occurred while posting your crop."
+        `An error occurred while posting your crop: ${error.message}`
       );
     }
   }
 );
 
-// --- NEW FUNCTION 2: Update Market Rates (Admin) ---
-/**
- * A callable function (for admin use) to update the
- * official market rates for various crops.
- */
+// --- FUNCTION 4: Update Market Rates (Admin) ---
 export const updateMarketRates = functions.https.onCall(
   async (data, context) => {
-    // Note: In a real app, you'd check if context.auth.uid is an admin.
-    // For now, we'll allow it.
+    // Check authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "You must be logged in."
+      );
+    }
 
-    const rates = data.rates; // Expect an array of rate objects
+    // TODO: Add admin check
+    // const userDoc = await admin.firestore().collection("users").doc(context.auth.uid).get();
+    // if (!userDoc.data()?.isAdmin) {
+    //   throw new functions.https.HttpsError("permission-denied", "Admin access required");
+    // }
+
+    const rates = data.rates;
+    
     if (!Array.isArray(rates) || rates.length === 0) {
       throw new functions.https.HttpsError(
         "invalid-argument",
-        "Rates must be a non-empty array."
+        "Rates must be a non-empty array"
       );
     }
 
@@ -105,17 +244,24 @@ export const updateMarketRates = functions.https.onCall(
     console.log("Updating market rates...");
 
     rates.forEach((rate: any) => {
-      // Use the crop name (in lowercase) as the document ID
-      const docId = rate.name.toLowerCase();
+      // Validate each rate object
+      if (!rate.name || !rate.price || !rate.unit) {
+        throw new functions.https.HttpsError(
+          "invalid-argument",
+          "Each rate must have name, price, and unit"
+        );
+      }
+
+      // Use crop name (lowercase) as document ID for easy lookup
+      const docId = rate.name.toLowerCase().replace(/\s+/g, '_');
       const docRef = collectionRef.doc(docId);
       
-      // We use 'set' with 'merge: true' to create or update
       batch.set(docRef, {
         name: rate.name,
         urduName: rate.urduName || "",
-        price: rate.price, // e.g., "3900"
-        unit: rate.unit,   // e.g., "/ 40kg"
-        region: rate.region || "Punjab", // Default region
+        price: parseFloat(rate.price),
+        unit: rate.unit,
+        region: rate.region || "Punjab",
         lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
     });
@@ -123,12 +269,122 @@ export const updateMarketRates = functions.https.onCall(
     try {
       await batch.commit();
       console.log("Successfully updated market rates.");
-      return { success: true, message: "Market rates updated." };
-    } catch (error) {
+      return { 
+        success: true, 
+        message: `${rates.length} market rates updated successfully` 
+      };
+    } catch (error: any) {
       console.error("Error updating market rates:", error);
       throw new functions.https.HttpsError(
         "internal",
-        "An error occurred while updating rates."
+        `Error updating rates: ${error.message}`
+      );
+    }
+  }
+);
+
+// --- FUNCTION 5: Mark Crop as Sold ---
+export const markCropAsSold = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "You must be logged in"
+      );
+    }
+
+    const { cropId } = data;
+    
+    if (!cropId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "cropId is required"
+      );
+    }
+
+    try {
+      const cropRef = admin.firestore().collection("crops_for_sale").doc(cropId);
+      const cropDoc = await cropRef.get();
+
+      if (!cropDoc.exists) {
+        throw new functions.https.HttpsError(
+          "not-found",
+          "Crop listing not found"
+        );
+      }
+
+      // Verify the user owns this listing
+      if (cropDoc.data()?.sellerId !== context.auth.uid) {
+        throw new functions.https.HttpsError(
+          "permission-denied",
+          "You can only update your own listings"
+        );
+      }
+
+      await cropRef.update({
+        status: "sold",
+        soldAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return { success: true, message: "Crop marked as sold" };
+      
+    } catch (error: any) {
+      console.error("Error marking crop as sold:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        error.message || "An error occurred"
+      );
+    }
+  }
+);
+
+// --- FUNCTION 6: Delete Crop Listing ---
+export const deleteCropListing = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "You must be logged in"
+      );
+    }
+
+    const { cropId } = data;
+    
+    if (!cropId) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "cropId is required"
+      );
+    }
+
+    try {
+      const cropRef = admin.firestore().collection("crops_for_sale").doc(cropId);
+      const cropDoc = await cropRef.get();
+
+      if (!cropDoc.exists) {
+        throw new functions.https.HttpsError(
+          "not-found",
+          "Crop listing not found"
+        );
+      }
+
+      // Verify ownership
+      if (cropDoc.data()?.sellerId !== context.auth.uid) {
+        throw new functions.https.HttpsError(
+          "permission-denied",
+          "You can only delete your own listings"
+        );
+      }
+
+      await cropRef.delete();
+
+      return { success: true, message: "Listing deleted successfully" };
+      
+    } catch (error: any) {
+      console.error("Error deleting crop listing:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        error.message || "An error occurred"
       );
     }
   }
