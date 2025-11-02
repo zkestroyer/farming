@@ -30,7 +30,7 @@ class LearningScreen extends StatelessWidget {
             urduTitle: "پانی کی بچت",
             icon: Icons.water_damage_rounded,
             color: Colors.blue.shade700,
-            lessonUrl: "https://www.youtube.com/watch?v=U0f0u1A0aQ4",
+            lessonUrl: "https://www.youtube.com/watch?v=gJmY3dzg3Gk",
           ),
           _buildLearningCard(
             context,
@@ -38,7 +38,7 @@ class LearningScreen extends StatelessWidget {
             urduTitle: "جدید کاشتکاری",
             icon: Icons.agriculture_rounded,
             color: Colors.green.shade800,
-            lessonUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            lessonUrl: "https://www.youtube.com/shorts/N-seiUB8WZ0",
           ),
           _buildLearningCard(
             context,
@@ -46,7 +46,7 @@ class LearningScreen extends StatelessWidget {
             urduTitle: "پائیدار طریقے",
             icon: Icons.eco_rounded,
             color: AppColors.chocolateBrown,
-            lessonUrl: "https://www.youtube.com/watch?v=J---aiyznGQ",
+            lessonUrl: "https://www.youtube.com/watch?v=hyrJlE015dA",
           ),
           _buildLearningCard(
             context,
@@ -54,7 +54,7 @@ class LearningScreen extends StatelessWidget {
             urduTitle: "کیڑوں پر قابو پانا",
             icon: Icons.bug_report_rounded,
             color: AppColors.primaryRed,
-            lessonUrl: "https://www.youtube.com/watch?v=oHg5SJYRHA0",
+            lessonUrl: "https://www.youtube.com/watch?v=AVSs-EkYTCo",
           ),
         ],
       ),

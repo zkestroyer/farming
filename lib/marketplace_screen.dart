@@ -1,18 +1,46 @@
+// lib/screens/marketplace_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:farming/app_theme.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-class MarketplaceScreen extends StatelessWidget {
-  const MarketplaceScreen({super.key});
+class MarketplaceScreen extends StatefulWidget {
+  final String? initialTab; // NEW: allows opening a specific section
 
-  void _launchVideo(String url) async {
-    Uri uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      debugPrint("Could not launch $url");
-    }
+  const MarketplaceScreen({super.key, this.initialTab});
+
+  @override
+  State<MarketplaceScreen> createState() => _MarketplaceScreenState();
+}
+
+class _MarketplaceScreenState extends State<MarketplaceScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Scroll to initial section after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.initialTab == "sellCrop") {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      } else if (widget.initialTab == "tutorials") {
+        _scrollController.animateTo(
+          500, // adjust according to layout
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -29,19 +57,26 @@ class MarketplaceScreen extends StatelessWidget {
               Icons.filter_list_rounded,
               color: AppColors.chocolateBrown,
             ),
-            onPressed: () {},
+            onPressed: () {
+              // TODO: Show filter options
+            },
           ),
         ],
       ),
       body: SingleChildScrollView(
+        controller: _scrollController, // attach controller
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Sell My Crop Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  // Scroll to sell crop section or show form
+                  // Here it's already top, you could open a modal if needed
+                },
                 child: const BilingualText(
                   englishText: "Sell My Crop",
                   urduText: "میری فصل بیچیں",
@@ -60,6 +95,8 @@ class MarketplaceScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
+
+            // Crop Recommendations
             Text(
               "Today's Crop Recommendations | آج کی فصل کی سفارشات",
               style: Theme.of(context).textTheme.headlineSmall,
@@ -73,9 +110,11 @@ class MarketplaceScreen extends StatelessWidget {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
+
                 final crops = snapshot.data!.docs;
-                if (crops.isEmpty)
+                if (crops.isEmpty) {
                   return const Text("No recommendations available.");
+                }
 
                 return GridView.builder(
                   shrinkWrap: true,
@@ -100,7 +139,9 @@ class MarketplaceScreen extends StatelessWidget {
                             : BorderSide.none,
                       ),
                       child: InkWell(
-                        onTap: () {},
+                        onTap: () {
+                          // TODO: Show crop details
+                        },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -161,6 +202,8 @@ class MarketplaceScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 32),
+
+            // Market Tutorials Section
             Text(
               "Learning & Tutorials | سیکھیں اور تربیت",
               style: Theme.of(context).textTheme.headlineSmall,
@@ -171,11 +214,14 @@ class MarketplaceScreen extends StatelessWidget {
                   .collection('market_tutorials')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
+                }
+
                 final tutorials = snapshot.data!.docs;
-                if (tutorials.isEmpty)
+                if (tutorials.isEmpty) {
                   return const Text("No tutorials available.");
+                }
 
                 return ListView.builder(
                   shrinkWrap: true,
@@ -188,11 +234,13 @@ class MarketplaceScreen extends StatelessWidget {
                       child: ListTile(
                         title: Text(tutorial['title'] ?? "Tutorial"),
                         subtitle: Text(tutorial['urdu'] ?? ""),
-                        trailing: const Icon(Icons.play_circle_fill_rounded),
                         onTap: () {
-                          String url =
-                              tutorial['videoUrl'] ?? "https://www.youtube.com";
-                          _launchVideo(url);
+                          // TODO: Open video URL
+                          final url = tutorial['videoUrl'] ?? "";
+                          if (url.isNotEmpty) {
+                            // Use url_launcher
+                            // launchUrl(Uri.parse(url));
+                          }
                         },
                       ),
                     );
