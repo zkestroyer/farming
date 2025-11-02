@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class WeatherService {
-  // --- Using WeatherAPI.com for this example ---
-  // (Sign up at https://www.weatherapi.com/ to get your key)
-  final String _apiKey = 'YOUR_WEATHER_API_KEY';
-  final String _baseUrl = 'https://api.weatherapi.com/v1';
+  // --- Using openweathermap.com for this  ---
+  
+  final String _apiKey = 'fee1d96b1414c7187e5237cc5639e298';
+  final String _baseUrl = 'http://api.openweathermap.org/';
 
   /// Fetches current weather and 3-day forecast for a given location.
   Future<Map<String, dynamic>> getForecast(String location) async {
