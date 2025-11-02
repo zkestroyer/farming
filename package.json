@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "@types/linkify-it": "^5.0.0"
+  },
+  "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated"
   }
 }

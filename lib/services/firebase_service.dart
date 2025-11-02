@@ -172,7 +172,6 @@ class FirebaseService {
 
   /// Search crops by name
   Stream<QuerySnapshot> searchCrops(String searchTerm) {
-    final lowerSearch = searchTerm.toLowerCase();
     return _db
         .collection('crops_for_sale')
         .where('status', isEqualTo: 'available')
