@@ -20,17 +20,14 @@ class FirebaseService {
   }
 
   // ============= USER MANAGEMENT =============
-  
+
   /// Add or update user profile
   Future<void> setUserProfile(String uid, Map<String, dynamic> data) async {
     try {
-      await _db.collection('users').doc(uid).set(
-        {
-          ...data,
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      await _db.collection('users').doc(uid).set({
+        ...data,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } catch (e) {
       debugPrint('Error setting user profile: $e');
       rethrow;
@@ -93,9 +90,11 @@ class FirebaseService {
         .collection('market_rates')
         .where('region', isEqualTo: region)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => {'id': doc.id, ...doc.data()})
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
   }
 
   /// Get all market rates (for all regions)
@@ -108,12 +107,11 @@ class FirebaseService {
 
   /// Call cloud function to update market rates (admin only)
   Future<Map<String, dynamic>> updateMarketRates(
-      List<Map<String, dynamic>> rates) async {
+    List<Map<String, dynamic>> rates,
+  ) async {
     try {
       final callable = _functions.httpsCallable('updateMarketRates');
-      final result = await callable.call(<String, dynamic>{
-        'rates': rates,
-      });
+      final result = await callable.call(<String, dynamic>{'rates': rates});
       return result.data as Map<String, dynamic>;
     } catch (e) {
       debugPrint('Error updating market rates: $e');
@@ -172,7 +170,6 @@ class FirebaseService {
 
   /// Search crops by name
   Stream<QuerySnapshot> searchCrops(String searchTerm) {
-    final lowerSearch = searchTerm.toLowerCase();
     return _db
         .collection('crops_for_sale')
         .where('status', isEqualTo: 'available')
@@ -186,9 +183,7 @@ class FirebaseService {
   Future<Map<String, dynamic>> markCropAsSold(String cropId) async {
     try {
       final callable = _functions.httpsCallable('markCropAsSold');
-      final result = await callable.call(<String, dynamic>{
-        'cropId': cropId,
-      });
+      final result = await callable.call(<String, dynamic>{'cropId': cropId});
       return result.data as Map<String, dynamic>;
     } catch (e) {
       debugPrint('Error marking crop as sold: $e');
@@ -200,9 +195,7 @@ class FirebaseService {
   Future<Map<String, dynamic>> deleteCropListing(String cropId) async {
     try {
       final callable = _functions.httpsCallable('deleteCropListing');
-      final result = await callable.call(<String, dynamic>{
-        'cropId': cropId,
-      });
+      final result = await callable.call(<String, dynamic>{'cropId': cropId});
       return result.data as Map<String, dynamic>;
     } catch (e) {
       debugPrint('Error deleting crop listing: $e');
@@ -240,18 +233,21 @@ class FirebaseService {
   /// Get resources stream
   Stream<QuerySnapshot> getResourcesStream({String? category}) {
     Query query = _db.collection('resources');
-    
+
     if (category != null && category.isNotEmpty) {
       query = query.where('category', isEqualTo: category);
     }
-    
+
     return query.orderBy('createdAt', descending: true).snapshots();
   }
 
   // ============= NOTIFICATIONS =============
 
   /// Get user notifications
-  Stream<QuerySnapshot> getUserNotificationsStream(String uid, {int limit = 20}) {
+  Stream<QuerySnapshot> getUserNotificationsStream(
+    String uid, {
+    int limit = 20,
+  }) {
     return _db
         .collection('notifications')
         .where('userId', isEqualTo: uid)
