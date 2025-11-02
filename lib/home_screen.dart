@@ -111,7 +111,14 @@ class HomeScreen extends StatelessWidget {
                       label: "Marketplace",
                       urduLabel: "منڈی",
                       color: AppColors.primaryRed,
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MarketplaceScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildActionCard(
                       context,
