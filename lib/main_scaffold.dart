@@ -17,7 +17,7 @@ class MainScaffold extends StatefulWidget {
 class _MainScaffoldState extends State<MainScaffold> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _widgetOptions = <Widget>[
+final List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
     SmartFarmingScreen(),
     MarketplaceScreen(),
@@ -42,7 +42,7 @@ class _MainScaffoldState extends State<MainScaffold> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const VoiceAssistantScreen(),
+      builder: (context) =>  VoiceAssistantScreen(),
     );
   }
 

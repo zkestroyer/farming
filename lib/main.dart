@@ -1,11 +1,12 @@
 // lib/main.dart
-import 'package:farming/splash_screen.dart';
+import 'package:farming/splash_screen.dart'; // Make sure this is imported
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:farming/app_theme.dart';
 import 'package:farming/language_selection_screen.dart';
 import 'firebase_options.dart';
+import 'auth_screen.dart'; // Import your AuthScreen
 
 Future<void> main() async {
   // Ensure Firebase is initialized before app runs
@@ -29,9 +30,18 @@ class VerdaApp extends StatelessWidget {
       title: 'Verda',
       theme: buildAppTheme(),
       debugShowCheckedModeBanner: false,
-      // Starting screen (your friend's UI)
+      
+      // 1. SET 'home' BACK TO SplashScreen
       home: const SplashScreen(),
-      routes: {'/home': (context) => const LanguageSelectionScreen()},
+
+      // 2. DEFINE ALL YOUR MAIN ROUTES
+      routes: {
+        '/auth': (context) => const AuthScreen(),
+        '/home': (context) => const LanguageSelectionScreen(),
+        // Note: '/home' now correctly points to LanguageSelectionScreen
+        // After auth, you are sent to '/home' (language)
+        // After language, you are sent to 'MainScaffold' (the app)
+      },
     );
   }
 }
